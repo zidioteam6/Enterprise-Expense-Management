@@ -1,1 +1,267 @@
+ //   ExpenseController class 
+package com.techplement.personalfinancemanager.controller;
+
+import com.techplement.personalfinancemanager.model.Budget;
+import com.techplement.personalfinancemanager.model.Expense;
+import com.techplement.personalfinancemanager.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ExpenseController {
+
+	public void addExpense(Expense expense) {
+		Transaction transaction = null;
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			session.save(expense);
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+			e.printStackTrace();
+		}
+	}
+
+	public List<Expense> getAllExpenses() {
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			return session.createQuery("from Expense", Expense.class).list();
+		}
+	}
+
+	public double getTotalExpenses() {
+		double totalExpenses = 0.0;
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			Query<Double> query = session.createQuery("select sum(e.amount) from Expense e", Double.class);
+			totalExpenses = query.uniqueResult();
+		}
+		return totalExpenses;
+	}
+
+	public double getTotalExpensesByCategory(String category) {
+		double totalExpenses = 0.0;
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			Query<Double> query = session.createQuery("select sum(e.amount) from Expense e where e.category = :category", Double.class);
+			query.setParameter("category", category);
+			Double result = query.uniqueResult();
+			if (result != null) {
+				totalExpenses = result.doubleValue();
+			}
+		}
+		return totalExpenses;
+	}
+
+
+	public void setBudget(Budget budget) {
+		Transaction transaction = null;
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			session.saveOrUpdate(budget);
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+			e.printStackTrace();
+		}
+	}
+
+	public Budget getBudgetByCategory(String category) {
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			Query<Budget> query = session.createQuery("from Budget where category = :category", Budget.class);
+			query.setParameter("category", category);
+			return query.uniqueResult();
+		}
+	}
+  //Method will delete the expense from expense list
+	public void deleteExpense(Long expenseId) {
+		Transaction transaction = null;
+		try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+			transaction = session.beginTransaction();
+			Expense expense = session.get(Expense.class, expenseId);
+			if (expense != null) {
+				session.delete(expense);
+			}
+			transaction.commit();
+		} catch (Exception e) {
+			if (transaction != null) {
+				transaction.rollback();
+			}
+			e.printStackTrace();
+		}
+	}
+	// method to retrieve monthly Expenses from DB
+	public List<Expense> getExpensesByMonth(int year, int month) {
+	    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+	        Query<Expense> query = session.createQuery("FROM Expense WHERE YEAR(date) = :year AND MONTH(date) = :month", Expense.class);
+	        query.setParameter("year", year);
+	        query.setParameter("month", month);
+	        return query.list();
+	    }
+	}
+	// method to retrieve yearly Expenses from DB
+	public List<Expense> getExpensesByYear(int year) {
+	    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+	        Query<Expense> query = session.createQuery("FROM Expense WHERE YEAR(date) = :year", Expense.class);
+	        query.setParameter("year", year);
+	        return query.list();
+	    }
+	}
+	//method to retrieve  CategoryWise Expenses from DB
+	public Map<String, Double> getCategoryWiseExpenseData() {
+	    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+	        Query<Object[]> query = session.createQuery("SELECT category, SUM(amount) FROM Expense GROUP BY category", Object[].class);
+	        List<Object[]> results = query.list();
+	        
+	        Map<String, Double> categoryExpenseMap = new HashMap();
+	        for (Object[] result : results) {
+	            String category = (String) result[0];
+	            Double totalExpense = (Double) result[1];
+	            categoryExpenseMap.put(category, totalExpense);
+	        }
+	        return categoryExpenseMap;
+	    }
+	}
+
+}
+
+
+
+
+
+
+//2  Budget class
+package com.techplement.personalfinancemanager.model;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "budget")
+public class Budget {
+    @Id
+    @Column(length = 191)
+    private String category;
+
+    @Column(name = "budget_limit")
+    private double budgetLimit;
+
+    // Constructors
+    public Budget() {}
+
+    public Budget(String category, double budgetLimit) {
+        this.category = category;
+        this.budgetLimit = budgetLimit;
+    }
+
+    // Getters and setters
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public double getBudgetLimit() {
+        return budgetLimit;
+    }
+
+    public void setBudgetLimit(double budgetLimit) {
+        this.budgetLimit = budgetLimit;
+    }
+}
+
+
+
+
+
+// 3 Expense class
+
+
+
+package com.techplement.personalfinancemanager.model;
+
+import javax.persistence.*;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "expenses")
+public class Expense {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private double amount;
+
+    private String category;
+
+    @Column(name = "date")
+    private LocalDate date;
+
+    private String description;
+
+    // Constructors
+    public Expense() {
+    }
+
+    public Expense(double amount, String category, LocalDate date, String description) {
+        this.amount = amount;
+        this.category = category;
+        this.date = date;
+        this.description = description;
+    }
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+}
+
+
+
+
+
+
+
 
