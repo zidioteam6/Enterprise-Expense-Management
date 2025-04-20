@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.expense.management.EnterpriseExpenseManagementApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.798 s -- in com.expense.management.EnterpriseExpenseManagementApplicationTests

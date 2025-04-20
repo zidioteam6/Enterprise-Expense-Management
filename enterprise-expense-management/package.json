@@ -1,0 +1,12 @@
+{
+
+  "dependencies": {
+
+    "cors": "^2.8.0",
+
+    "react-router-dom": "^7.5.0"
+
+  }
+
+}
+
